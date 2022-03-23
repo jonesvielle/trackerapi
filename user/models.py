@@ -1,3 +1,5 @@
+from ast import Str
+from tokenize import Number
 from flask import Flask, jsonify, request, session
 from passlib.hash import pbkdf2_sha256
 # from werkzeug.utils import secure_filename
@@ -45,9 +47,22 @@ class User:
         _device_id = _json['device_id']
         _phone = _json['phone']
         _pin = _json['pin']
-        if databaseConn.track_users({"device_id": _device_id, "phone": _phone, "pin": _pin}):
+        _pin = int(_pin)
+        data = databaseConn.track_users.find_one(
+            {"device_id": _device_id, "phone": _phone, "pin": _pin})
+        if data:
             return jsonify({"message": "access granted"}), 200
+        print(data)
         return jsonify({"message": "access denied"}), 401
+
+    def register_device(self):
+        _json = request.json
+        _device_id = self.get_random_string(7)
+        _phone = _json['phone']
+        _pin = random.randint(99999, 999999)
+        if databaseConn.track_users.insert_one({"device_id": _device_id, "phone": _phone, "pin": _pin}):
+            return jsonify({"message": "device created"}), 200
+        return jsonify({"message": "something went wrong"}), 500
 
     def push_location(self, device_id, latitude, longitude):
         ref = db.reference('/locations')
